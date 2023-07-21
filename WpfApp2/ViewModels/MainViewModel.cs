@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WpfApp2.ApiEntities.Teams;
+using WpfApp2.Commands;
 using WpfApp2.Helpers;
 using WpfApp2.Models;
 using WpfApp2.Services;
@@ -22,10 +23,35 @@ namespace WpfApp2.ViewModels
 			set { allTeams = value; OnPropertyChanged(); }
 		}
 
+		private ObservableCollection<PageNo> allPages;
+
+		public ObservableCollection<PageNo> AllPages
+        {
+			get { return allPages; }
+			set { allPages = value; OnPropertyChanged(); }
+		}
+
+		private PageNo selectedPageNo;
+
+		public PageNo SelectedPageNo
+        {
+			get { return selectedPageNo; }
+			set { selectedPageNo = value; }
+		}
+
+		public RelayCommand SelectPageCommand { get; set; }
+
 		List<Response> result = null;
 		public async void LoadData()
 		{
 			var service = new NbaApiService();
+
+
+			SelectPageCommand = new RelayCommand((obj) =>
+			{
+				var no=SelectedPageNo.No;
+				AllTeams = new ObservableCollection<Response>(result.Skip((no - 1) * 10).Take(10));
+			});
 
 			//if (File.Exists("players.json"))
 			//{
@@ -39,16 +65,28 @@ namespace WpfApp2.ViewModels
 
 			//}
 
-			if (File.Exists("teams2.json"))
+			if (File.Exists("teams.json"))
 			{
-				result = JsonHelper<ApiEntities.Teams.Response>.Deserialize("teams.json");
+				result = await JsonHelper<ApiEntities.Teams.Response>.DeserializeAsync("teams.json");
 			}
 			else
 			{
 				result = await service.GetTeamsAsync();
-				JsonHelper<Response>.Serialize(result, "teams.json");
+				await JsonHelper<Response>.SerializeAsync(result, "teams.json");
 			}
-			AllTeams = new ObservableCollection<Response>(result);
+			AllPages = new ObservableCollection<PageNo>();
+			var pageSize = 10;
+			var pageCount=decimal.Parse(result.Count().ToString())/pageSize;
+			var count=Math.Ceiling(pageCount);
+			for (int i = 0; i < count; i++)
+			{
+				AllPages.Add(new PageNo
+				{
+					No = i + 1
+				});
+			}
+
+			AllTeams = new ObservableCollection<Response>(result.Skip(0).Take(pageSize));
 		}
 
 

@@ -10,32 +10,38 @@ namespace WpfApp2.Helpers
 {
     public class JsonHelper<T> where T : class
     {
-        public static void Serialize(List<T> values,string filename)
+        public static Task SerializeAsync(List<T> values,string filename)
         {
-            var serializer = new JsonSerializer();
-
-            using (var sw=new StreamWriter(filename))
+            return Task.Run(() =>
             {
-                using (var jw=new JsonTextWriter(sw))
+                var serializer = new JsonSerializer();
+
+                using (var sw = new StreamWriter(filename))
                 {
-                    jw.Formatting = Formatting.Indented;
-                    serializer.Serialize(jw, values);
+                    using (var jw = new JsonTextWriter(sw))
+                    {
+                        jw.Formatting = Formatting.Indented;
+                        serializer.Serialize(jw, values);
+                    }
                 }
-            }
+            });
         }
 
-        public static List<T> Deserialize(string filename)
+        public static Task<List<T>> DeserializeAsync(string filename)
         {
-            List<T> values=new List<T>();   
-            var serializer = new JsonSerializer();
-            using (var sr=new StreamReader(filename))
+            return Task.Run(() =>
             {
-                using (var jr = new JsonTextReader(sr))
+                List<T> values = new List<T>();
+                var serializer = new JsonSerializer();
+                using (var sr = new StreamReader(filename))
                 {
-                    values = serializer.Deserialize<List<T>>(jr);
+                    using (var jr = new JsonTextReader(sr))
+                    {
+                        values = serializer.Deserialize<List<T>>(jr);
+                    }
                 }
-            }
-            return values;
+                return values;
+            });
         }
     }
 }
